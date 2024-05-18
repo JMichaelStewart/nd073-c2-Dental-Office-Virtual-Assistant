@@ -54,6 +54,10 @@ jobs:
         with:
           name: node-app
 
+      - name: Create target directory
+        run: |
+          mkdir -p starter/ContosoDentistryChatBot
+
       - name: Unzip artifact for deployment
         run: |
           unzip release.zip -d starter/ContosoDentistryChatBot
