@@ -12,13 +12,17 @@ const restify = require('restify');
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-const { BotFrameworkAdapter } = require('botbuilder');
+const { 
+    ConfigurationBotFrameworkAuthentication, 
+    CloudAdapter 
+} = require('botbuilder');
 
 // This bot's main dialog.
 const { DentaBot } = require('./bot');
 
 // Create HTTP server
 const server = restify.createServer();
+server.use(restify.plugins.bodyParser());
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log(`\n${server.name} listening to ${server.url}`);
     console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
@@ -26,11 +30,9 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
 });
 
 // Create adapter.
+const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication(process.env);
 // See https://aka.ms/about-bot-adapter to learn more about how bots work.
-const adapter = new BotFrameworkAdapter({
-    appId: process.env.MicrosoftAppId,
-    appPassword: process.env.MicrosoftAppPassword
-});
+const adapter = new CloudAdapter(botFrameworkAuthentication);
 
 // Catch-all for errors.
 const onTurnErrorHandler = async (context, error) => {
@@ -62,10 +64,11 @@ const QnAConfiguration = {
     host: process.env.QnAEndpointHostName
 };
 
-const LuisConfiguration = {
-    applicationId: process.env.LuisAppId,
-    endpointKey: process.env.LuisAPIKey,
-    endpoint: process.env.LuisAPIHostName,
+const CLUConfiguration = {
+    CluProjectName: process.env.CluProjectName,
+    CluDeploymentName: process.env.CluDeploymentName,
+    CluAPIKey: process.env.CluAPIKey,
+    CluAPIHostName: process.env.CluAPIHostName
 }
 
 const SchedulerConfiguration = {
@@ -74,7 +77,7 @@ const SchedulerConfiguration = {
 //pack each service configuration into 
 const configuration = {
     QnAConfiguration,
-    LuisConfiguration,
+    CLUConfiguration,
     SchedulerConfiguration
 }
 
@@ -82,26 +85,15 @@ const configuration = {
 const myBot = new DentaBot(configuration, {});
 
 // Listen for incoming requests.
-server.post('/api/messages', (req, res) => {
-    adapter.processActivity(req, res, async (context) => {
-        // Route to main dialog.
-        await myBot.run(context);
-    });
+server.post('/api/messages', async (req, res) => {
+    await adapter.process(req, res, (context) => myBot.run(context));
 });
 
 // Listen for Upgrade requests for Streaming.
-server.on('upgrade', (req, socket, head) => {
+server.on('upgrade', async (req, socket, head) => {
     // Create an adapter scoped to this WebSocket connection to allow storing session data.
-    const streamingAdapter = new BotFrameworkAdapter({
-        appId: process.env.MicrosoftAppId,
-        appPassword: process.env.MicrosoftAppPassword
-    });
+    const streamingAdapter = new CloudAdapter(botFrameworkAuthentication);
     // Set onTurnError for the BotFrameworkAdapter created for each connection.
     streamingAdapter.onTurnError = onTurnErrorHandler;
-
-    streamingAdapter.useWebSocket(req, socket, head, async (context) => {
-        // After connecting via WebSocket, run this logic for every request sent over
-        // the WebSocket connection.
-        await myBot.run(context);
-    });
+    await streamingAdapter.process(req, socket, head, (context) => myBot.run(context));
 });

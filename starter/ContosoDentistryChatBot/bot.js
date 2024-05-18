@@ -2,10 +2,9 @@
 // Licensed under the MIT License.
 
 const { ActivityHandler, MessageFactory } = require('botbuilder');
-
-const { QnAMaker } = require('botbuilder-ai');
 const DentistScheduler = require('./dentistscheduler');
 const IntentRecognizer = require("./intentrecognizer")
+const { CustomQuestionAnswering } = require('botbuilder-ai');
 
 class DentaBot extends ActivityHandler {
     constructor(configuration, qnaOptions) {
@@ -14,7 +13,7 @@ class DentaBot extends ActivityHandler {
         if (!configuration) throw new Error('[QnaMakerBot]: Missing parameter. configuration is required');
 
         // create a QnAMaker connector
-        this.QnAMaker = new QnAMaker()
+        this.QnAMaker = new CustomQuestionAnswering(configuration.QnAConfiguration, qnaOptions);
        
         // create a DentistScheduler connector
       
@@ -37,14 +36,14 @@ class DentaBot extends ActivityHandler {
             //  return;
             // }
             // else {...}
-             
+            await context.sendActivity("hello");
             await next();
     });
 
         this.onMembersAdded(async (context, next) => {
         const membersAdded = context.activity.membersAdded;
         //write a custom greeting
-        const welcomeText = '';
+        const welcomeText = 'Hello, welcome to the chat';
         for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
             if (membersAdded[cnt].id !== context.activity.recipient.id) {
                 await context.sendActivity(MessageFactory.text(welcomeText, welcomeText));
