@@ -32,10 +32,14 @@ class DentaBot extends ActivityHandler {
                      
             // determine which service to respond with based on the results from LUIS //
 
-            if(cluResult.result.prediction.topIntent === "GetAvailability") {
+            if(cluResult.result.prediction.topIntent === "GetAvailability" &&
+                cluResult.result.prediction.intents[0].confidence > .75
+            ) {
                 const availability = await this.dentistScheduler.getAvailability();
                 await context.sendActivity("We have the following appointments available today." + availability);
-            } else if(cluResult.result.prediction.topIntent === "ScheduleAppointment") {
+            } else if(cluResult.result.prediction.topIntent === "ScheduleAppointment" &&
+                cluResult.result.prediction.intents[0].confidence > .6
+            ) {
                 const time = this.intentRecognizer.getTimeEntity(cluResult);
                 if(!time) {
                     await context.sendActivity("Please specify a time that is available to schedule your appointment.");    
@@ -45,7 +49,7 @@ class DentaBot extends ActivityHandler {
                 }
             } else {
                 //No intent recognized.
-                await context.sendActivity("No intent recognized.");
+                await context.sendActivity(qnaResults[0].answer);
             }
             
             await next();

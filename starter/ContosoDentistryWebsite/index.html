@@ -53,7 +53,7 @@
 			<div class="row aln-center">
 				<div class="col-6 col-6-medium col-12-small">
 					<section class="box style1">
-						<iframe id="chat" style="width: 400px; height: 400px;" src=''></iframe>
+						<iframe src='https://webchat.botframework.com/embed/dental-chat-bot?s=DzGMbVsTZm8.uhVcR5WVplWohyGnSrJkwabW6ypBVLboRMi8Pgpta88'  style='min-width: 400px; width: 100%; min-height: 500px;'></iframe>
 					</section>
 				</div>
 			</div>
@@ -66,22 +66,6 @@
 	<script src="assets/js/breakpoints.min.js"></script>
 	<script src="assets/js/util.js"></script>
 	<script src="assets/js/main.js"></script>
-	<script>
-
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', "https://webchat.botframework.com/api/tokens", true);
-		xhr.setRequestHeader('Authorization', 'BotConnector ' + 'DzGMbVsTZm8.uhVcR5WVplWohyGnSrJkwabW6ypBVLboRMi8Pgpta88');
-		xhr.send();
-		xhr.onreadystatechange = processRequest;
-	
-		function processRequest(e) {
-		  if (xhr.readyState == 4  && xhr.status == 200) {
-			var response = JSON.parse(xhr.responseText);
-			document.getElementById("chat").src="https://webchat.botframework.com/embed/<botname>?t="+response
-		  }
-		}
-	
-	  </script>
 
 </body>
 
