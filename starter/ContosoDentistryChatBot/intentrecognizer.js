@@ -1,17 +1,17 @@
-const {LuisRecognizer} = require('botbuilder-ai')
-
+const { ConversationAnalysisClient } = require('@azure/ai-language-conversations')
+const { AzureKeyCredential } = require("@azure/core-auth");
 class IntentRecognizer {
     constructor(config) {
-        const luisIsConfigured = config && config.applicationId && config.endpointKey && config.endpoint;
-        if (luisIsConfigured) {
-            // Set the recognizer options depending on which endpoint version you want to use e.g v2 or v3.
-            // More details can be found in https://docs.microsoft.com/en-gb/azure/cognitive-services/luis/luis-migration-api-v3
-            const recognizerOptions = {
-                apiVersion: 'v3'
-            };
+        
+        // Set the recognizer options depending on which endpoint version you want to use e.g v2 or v3.
+        // More details can be found in https://docs.microsoft.com/en-gb/azure/cognitive-services/luis/luis-migration-api-v3
+        const recognizerOptions = {
+            apiVersion: 'v3'
+        };
 
-            this.recognizer = new LuisRecognizer(config, recognizerOptions);
-        }
+        this.recognizer = new ConversationAnalysisClient(config.CluAPIHostName, new AzureKeyCredential(config.CluAPIKey));
+        this.projectName = config.CluProjectName;
+        this.deploymentName = config.CluDeploymentName;
     }
 
     get isConfigured() {
@@ -22,20 +22,37 @@ class IntentRecognizer {
      * Returns an object with preformatted LUIS results for the bot's dialogs to consume.
      * @param {TurnContext} context
      */
-    async executeLuisQuery(context) {
-        return await this.recognizer.recognize(context);
+    async executeCluQuery(context) {
+        //This new API takes a JSON format, for this exercise I am just hardcoding some of the values. 
+        return await this.recognizer.analyzeConversation({
+            kind: "Conversation",
+            analysisInput: {
+                conversationItem: {
+                    id: "id__7863",
+                    participantId: "id__7863",
+                    text: context.activity.text
+                }
+            },
+            parameters: {
+                projectName: this.projectName,
+                deploymentName: this.deploymentName
+            }
+        });
     }
 
  
     getTimeEntity(result) {
-        const datetimeEntity = result.entities.datetime;
-        if (!datetimeEntity || !datetimeEntity[0]) return undefined;
+        const entities = result.result.prediction.entities;
 
-        const timex = datetimeEntity[0].timex;
-        if (!timex || !timex[0]) return undefined;
+        let datetimeEntity = null;
+        entities.forEach(item => {
+            if(item.category === 'date_time') {
+                datetimeEntity = item.text;
+            }
+        })
+        if (!datetimeEntity) return undefined;
 
-        const datetime = timex[0]
-        return datetime;
+        return datetimeEntity;
     }
 }
 

@@ -16,34 +16,45 @@ class DentaBot extends ActivityHandler {
         this.QnAMaker = new CustomQuestionAnswering(configuration.QnAConfiguration, qnaOptions);
        
         // create a DentistScheduler connector
+        this.dentistScheduler = new DentistScheduler(configuration.SchedulerConfiguration);
       
         // create a IntentRecognizer connector
-
+        this.intentRecognizer = new IntentRecognizer(configuration.CLUConfiguration);
 
         this.onMessage(async (context, next) => {
             // send user input to QnA Maker and collect the response in a variable
             // don't forget to use the 'await' keyword
-          
+            const qnaResults = await this.QnAMaker.getAnswers(context);
+
             // send user input to IntentRecognizer and collect the response in a variable
             // don't forget 'await'
+            const cluResult = await this.intentRecognizer.executeCluQuery(context);
                      
             // determine which service to respond with based on the results from LUIS //
 
-            // if(top intent is intentA and confidence greater than 50){
-            //  doSomething();
-            //  await context.sendActivity();
-            //  await next();
-            //  return;
-            // }
-            // else {...}
-            await context.sendActivity("hello");
+            if(cluResult.result.prediction.topIntent === "GetAvailability") {
+                const availability = await this.dentistScheduler.getAvailability();
+                await context.sendActivity("We have the following appointments available today." + availability);
+            } else if(cluResult.result.prediction.topIntent === "ScheduleAppointment") {
+                const time = this.intentRecognizer.getTimeEntity(cluResult);
+                if(!time) {
+                    await context.sendActivity("Please specify a time that is available to schedule your appointment.");    
+                } else {
+                    const response = await this.dentistScheduler.scheduleAppointment(time);
+                    await context.sendActivity(response);
+                }
+            } else {
+                //No intent recognized.
+                await context.sendActivity("No intent recognized.");
+            }
+            
             await next();
     });
 
         this.onMembersAdded(async (context, next) => {
         const membersAdded = context.activity.membersAdded;
         //write a custom greeting
-        const welcomeText = 'Hello, welcome to the chat';
+        const welcomeText = 'Hello, welcome to the Dental offices of Contoso.  You can check availability for appointments and you can also schedule appointments.';
         for (let cnt = 0; cnt < membersAdded.length; ++cnt) {
             if (membersAdded[cnt].id !== context.activity.recipient.id) {
                 await context.sendActivity(MessageFactory.text(welcomeText, welcomeText));
